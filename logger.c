@@ -9,8 +9,7 @@
 #include <sys/stat.h>
 #include <openssl/md5.h>
 
-FILE *
-fopen(const char *path, const char *mode) 
+FILE *fopen(const char *path, const char *mode) 
 {
 
 	FILE *original_fopen_ret;
@@ -32,8 +31,7 @@ fopen(const char *path, const char *mode)
 }
 
 
-size_t 
-fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream) 
+size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream) 
 {
 
 	size_t original_fwrite_ret;
@@ -53,5 +51,3 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 
 	return original_fwrite_ret;
 }
-
-
