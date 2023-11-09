@@ -9,64 +9,11 @@
 #include <sys/stat.h>
 #include <openssl/md5.h>
 
-/*typedef struct log_entry {
-
-    int uid; /* user id (positive integer) 
-    int access_type; /* access type values [0-2] 
-    int action_denied; /* is action denied values [0-1] 
-
-    time_t date; /* file access date 
-    time_t time; /* file access time 
-
-    char *file; /* filename (string)
-    char *fingerprint; /* file fingerprint
-
-    char* filename;
-
-}Entry;
-*/
 
 FILE *
 fopen(const char *path, const char *mode) 
 {   
-    int uid = getuid(); /* user id (positive integer) */
-    int access_type; /* access type values [0-2] */
-    int action_denied; /* is action denied values [0-1] */
-
-    time_t times; /* file access time     format: Sun Sep 16 01:03:52 1973\n\0 */
-    time(&times);
-    struct tm *time_info;
-    time_info = localtime(&times);
-    // Get the formatted date and time string
-    char* date_time_str = asctime(time_info);
-
-    char timestamp[8+1+1];  // +'\n' +'\0'
-    strncpy(timestamp, date_time_str + 11, 8);
-    timestamp[8] = '\n';
-    timestamp[9] = '\0';
-        
-    char date2[4+1+1];
-    char date1[11+1 + sizeof(date2)];
-    strncpy(date1, date_time_str, 10);
-    date1[10] = ' ';
-    date1[11] = '\0';
-    strncpy(date2, date_time_str + 20, 4);
-    date2[4] = '\n';
-    date2[5] = '\0';
-    strcat(date1, date2);
-
-    char *filename  ; /* filename (string) */
-    char *fingerprint; /* file fingerprint */
-
-    ////////////////////////////////////////////////////////
-
-    if (access(path, F_OK) != -1) {
-        // The file exists
-        printf("File already exists: %s\n", path);
-    } else {
-        // The file does not exist
-        printf("File does not exist: %s\n", path);
-    }
+    int log = strcmp(path, "file_logging.log"); //if 0 open log file
 
     FILE *original_fopen_ret;
     FILE *(*original_fopen)(const char*, const char*);
@@ -75,13 +22,68 @@ fopen(const char *path, const char *mode)
     original_fopen = dlsym(RTLD_NEXT, "fopen");
     original_fopen_ret = (*original_fopen)(path, mode);
 
+    if(log != 0){
+        int uid = getuid(); /* user id (positive integer) */
+        int access_type; /* access type values [0-2] */
+        int action_denied; /* is action denied values [0-1] */
 
-    /* add your code here */
-    /* ... */
-    /* ... */
-    /* ... */
-    /* ... */
+        time_t times; /* file access time     format: Sun Sep 16 01:03:52 1973\n\0 */
+        time(&times);
+        struct tm *time_info;
+        time_info = localtime(&times);
+        // Get the formatted date and time string
+        char* date_time_str = asctime(time_info);
 
+        char timestamp[8+1+1];  // +'\n' +'\0'
+        strncpy(timestamp, date_time_str + 11, 8);
+        timestamp[8] = '\n';
+        timestamp[9] = '\0';
+            
+        char date2[4+1+1];
+        char date1[11+1 + sizeof(date2)];
+        strncpy(date1, date_time_str, 10);
+        date1[10] = ' ';
+        date1[11] = '\0';
+        strncpy(date2, date_time_str + 20, 4);
+        date2[4] = '\n';
+        date2[5] = '\0';
+        strcat(date1, date2);
+
+        char *filename = realpath(path, NULL); /* filename (string) */
+
+        MD5_CTX md5Context;
+        MD5_Init(&md5Context);
+
+        char buffer[4096];
+        size_t bytesRead;
+
+        fseek(original_fopen_ret, 0, SEEK_SET);
+
+        while ((bytesRead = fread(buffer, 1, sizeof(buffer), original_fopen_ret)) > 0) {
+            MD5_Update(&md5Context, buffer, bytesRead);
+        }
+        unsigned char fingerprint[MD5_DIGEST_LENGTH];
+        MD5_Final(fingerprint, &md5Context);
+
+        ////////////////////////////////////////////////////////
+
+        if (access(path, F_OK) != -1) {
+            // The file exists
+            access_type = 1;
+            action_denied = 0;
+        }
+        else {
+            // The file does not exist, create file
+            if(mode[0] == 'w' || mode[0] == 'a'){
+                action_denied = 0;
+                access_type = 0;
+            }
+            else{
+                access_type = 1;    //the file can't be accessed nor be created so the opening action is denied
+                action_denied = 1;
+            }
+        }
+    }
 
     return original_fopen_ret;
 }
