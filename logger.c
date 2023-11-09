@@ -32,19 +32,17 @@ fopen(const char *path, const char *mode)
         // Get the formatted date and time string
         char* date_time_str = asctime(time_info);
 
-        char timestamp[8+1+1];  // +'\n' +'\0'
+        char timestamp[8+1];  // '\0'
         strncpy(timestamp, date_time_str + 11, 8);
-        timestamp[8] = '\n';
-        timestamp[9] = '\0';
+        timestamp[8] = '\0';
             
-        char date2[4+1+1];
+        char date2[4+1];
         char date1[11+1 + sizeof(date2)];
         strncpy(date1, date_time_str, 10);
         date1[10] = ' ';
         date1[11] = '\0';
         strncpy(date2, date_time_str + 20, 4);
-        date2[4] = '\n';
-        date2[5] = '\0';
+        date2[4] = '\0';
         strcat(date1, date2);
 
         char *filename = realpath(path, NULL); /* filename (string) */
@@ -81,6 +79,15 @@ fopen(const char *path, const char *mode)
                 action_denied = 1;
             }
         }
+        size_t (*original_fwrite)(const void*, size_t, size_t, FILE*);
+        original_fwrite = dlsym(RTLD_NEXT, "fwrite");
+        FILE *logg;
+        logg = (*original_fopen)("file_logging.log", "w");
+        //(*original_fwrite)(&uid, sizeof(uid), 1, logg);
+        //(*original_fwrite)('\n', sizeof(char), 1, logg);
+        //(*original_fwrite)(date1, sizeof(char), strlen(date1), logg);
+        fprintf(logg, "%d %s %s %s %d %d %s", uid, filename, date1, timestamp, access_type, action_denied, fingerprint);
+        
     }
 
     return original_fopen_ret;
