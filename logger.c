@@ -156,7 +156,7 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
             unsigned char fingerprint[MD5_DIGEST_LENGTH];
             MD5_Final(fingerprint, &md5Context);
 
-            if(access(filename, W_OK)){
+            if(access(filename, W_OK)!=1){
               access_type = 2;
               action_denied = 0;
             } else {
