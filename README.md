@@ -1,2 +1,4 @@
-first
+Instructions: 
+make 
+make run
 
