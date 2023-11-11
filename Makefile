@@ -1,4 +1,4 @@
-all: logger acmonitor test_aclog
+all: logger acmonitor test_aclog 
 
 logger: logger.c
 	gcc -Wall -fPIC -shared -o logger.so logger.c -lcrypto -ldl 
@@ -16,5 +16,5 @@ clean:
 	rm -rf logger.so
 	rm -rf test_aclog
 	rm -rf acmonitor
-
+	rm -rf file_*
 

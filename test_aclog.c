@@ -21,6 +21,7 @@ int main()
 			printf("fopen error\n");
 		else {
 			bytes = fwrite(filenames[i], strlen(filenames[i]), 1, file);
+      fprintf(file,"\n");
 			fclose(file);
 		}
 
