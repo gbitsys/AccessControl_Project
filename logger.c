@@ -170,14 +170,14 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 
             char buffer[4096];
             size_t bytesRead;
-            fseek(original_fwrite_ret, 0, SEEK_SET);
+            fseek(stream, 0, SEEK_SET);
 
-            while ((bytesRead = fread(buffer, 1, sizeof(buffer), original_fwrite_ret)) > 0) {
+            while ((bytesRead = fread(buffer, 1, sizeof(buffer), stream)) > 0) {
                 MD5_Update(&md5Context, buffer, bytesRead);
             }
             unsigned char fingerprint[MD5_DIGEST_LENGTH];
             MD5_Final(fingerprint, &md5Context);
-            fseek(original_fwrite_ret, 0, SEEK_SET);
+            fseek(stream, 0, SEEK_SET);
 
            access_type = 2; //opened for writing purposes
            if (!original_fwrite_ret){
