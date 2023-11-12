@@ -31,7 +31,6 @@ fopen(const char *path, const char *mode)
     /* determine access type*/
     //first checking if file exists
     if (euidaccess(filename, F_OK)!=-1){ 
-      //file exists then we are performing access control
       if (mode[0]=='r'){
         if (euidaccess(filename, R_OK)!=-1){
           //open file with access
@@ -53,7 +52,10 @@ fopen(const char *path, const char *mode)
             access_type = 2;
             action_denied = 1;
           }
+          
         }
+       
+
     }
     //if file doesn't exist and we want to write in it  
     else {
@@ -90,21 +92,23 @@ fopen(const char *path, const char *mode)
 
         char buffer[4096];
         size_t bytesRead;
-        unsigned char fingerprint[MD5_DIGEST_LENGTH]; //result of the md5 hashing
 
-        if (original_fopen_ret!=NULL){
-          fseek(original_fopen_ret, 0, SEEK_SET);
+        fseek(original_fopen_ret, 0, SEEK_SET);
 
-          while ((bytesRead = fread(buffer, 1, sizeof(buffer), original_fopen_ret)) > 0) {
-              MD5_Update(&md5Context, buffer, bytesRead);
-          }
-                    MD5_Final(fingerprint, &md5Context);
+        while ((bytesRead = fread(buffer, 1, sizeof(buffer), original_fopen_ret)) > 0) {
+            MD5_Update(&md5Context, buffer, bytesRead);
         }
+        unsigned char fingerprint[MD5_DIGEST_LENGTH]; //result of the md5 hashing
+        MD5_Final(fingerprint, &md5Context);
 
         FILE *logg;
         logg = (*original_fopen)("file_logging.log", "a");
-        fprintf(logg, "%d %s %s %s %d %d %s\n", uid, filename, date1, timestamp, access_type, action_denied, fingerprint);
-                
+        fprintf(logg, "%d %s %s %s %d %d ", uid, filename, date1, timestamp, access_type, action_denied);
+        for (int i=0; i<MD5_DIGEST_LENGTH; i++){
+          fprintf(logg, "%02x", fingerprint[i]);
+        }      
+        fprintf(logg, "\n");
+        fclose(logg);
     }
 
     return original_fopen_ret;
@@ -122,6 +126,9 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
     original_fwrite = dlsym(RTLD_NEXT, "fwrite");
     original_fwrite_ret = (*original_fwrite)(ptr, size, nmemb, stream);
 
+    FILE *original_fopen_ret;
+    FILE *(*original_fopen)(const char*, const char*); //function pointer to original fopen
+
     if (stream != NULL && stream != stdout && stream != stderr) {
         // Get user ID
         int uid = getuid();
@@ -137,7 +144,10 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
         if (pathSize != -1) {
             filename[pathSize] = '\0';
 
-            FILE * logg = fopen("file_logging.log", "a");
+            /* call the original fopen function */
+            original_fopen = dlsym(RTLD_NEXT, "fopen");
+            original_fopen_ret = (*original_fopen)(filename, "r");
+
             int access_type; /* access type values [0-2] */
             int action_denied; /* is action denied values [0-1] */
 
@@ -168,9 +178,9 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
             char buffer[4096];
             size_t bytesRead;
 
-            fseek(logg, 0, SEEK_SET);
+            fseek(original_fopen_ret, 0, SEEK_SET);
 
-            while ((bytesRead = fread(buffer, 1, sizeof(buffer), logg)) > 0) {
+            while ((bytesRead = fread(buffer, 1, sizeof(buffer), original_fopen_ret)) > 0) {
                 MD5_Update(&md5Context, buffer, bytesRead);
             }
             unsigned char fingerprint[MD5_DIGEST_LENGTH];
@@ -183,8 +193,14 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
              action_denied = 0;
            }
 
-            fprintf(logg, "%d %s %s %s %d %d %s\n", uid, filename, date1, timestamp, access_type, action_denied, fingerprint);
-
+        FILE *logg;
+        logg = (*original_fopen)("file_logging.log", "a");
+        fprintf(logg, "%d %s %s %s %d %d ", uid, filename, date1, timestamp, access_type, action_denied);
+        for (int i=0; i<MD5_DIGEST_LENGTH; i++){
+          fprintf(logg, "%02x", fingerprint[i]);
+        }      
+        fprintf(logg, "\n");
+        fclose(logg);
         }
     }
 
