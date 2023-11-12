@@ -24,8 +24,19 @@ int main()
       fprintf(file,"\n");
 			fclose(file);
 		}
-
-	}
+  }
+    
+    FILE * file2;
+    file2 = fopen("testFile", "w+");
+    if (file2==NULL){
+      printf("file fopen error\n");
+    }
+    else {
+      fwrite(filenames[3], strlen(filenames[3]), 1, file2);
+      fprintf(file2, "\n");
+      fclose(file2);
+    }
+	
 
 
 	/* add your code here */
