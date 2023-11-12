@@ -16,17 +16,54 @@ fopen(const char *path, const char *mode)
     int log = strcmp(path, "file_logging.log"); //if 0 open log file
 
     FILE *original_fopen_ret;
-    FILE *(*original_fopen)(const char*, const char*);
+    FILE *(*original_fopen)(const char*, const char*); //function pointer to original fopen
 
     /* call the original fopen function */
     original_fopen = dlsym(RTLD_NEXT, "fopen");
     original_fopen_ret = (*original_fopen)(path, mode);
+    char *filename = realpath(path, NULL); /* filename (string) */
 
+    int uid = getuid(); /* user id (positive integer) */
+    int access_type; /* access type values [0-2] */
+    int action_denied; /* is action denied values [0-1] */
+
+
+    /* determine access type*/
+    //first checking if file exists
+    if (euidaccess(filename, F_OK)!=-1){ 
+      //file exists then we are performing access control
+      if (mode[0]=='r'){
+        if (euidaccess(filename, R_OK)!=-1){
+          //open file with access
+          access_type = 1;
+          action_denied = 0;
+        } else {
+          //open file with no access
+          access_type = 1;
+          action_denied = 1;
+        }
+      }
+        if(mode[0]=='w' || mode[0]=='a'){
+          if (euidaccess(filename, W_OK)!=-1){
+            //write file with access
+            access_type = 2;
+            action_denied = 0;
+          } else {
+            //write file with no access
+            access_type = 2;
+            action_denied = 1;
+          }
+        }
+    }
+    //if file doesn't exist and we want to write in it  
+    else {
+      if (mode[0]=='w' || mode[0]=='a'){
+        action_denied = 0;
+        access_type = 0; //file created
+      }
+    }
+    
     if(log != 0){
-        int uid = getuid(); /* user id (positive integer) */
-        int access_type; /* access type values [0-2] */
-        int action_denied; /* is action denied values [0-1] */
-
         time_t times; /* file access time     format: Sun Sep 16 01:03:52 1973\n\0 */
         time(&times);
         struct tm *time_info;
@@ -47,44 +84,27 @@ fopen(const char *path, const char *mode)
         date2[4] = '\0';
         strcat(date1, date2);
 
-        char *filename = realpath(path, NULL); /* filename (string) */
-
+        
         MD5_CTX md5Context;
         MD5_Init(&md5Context);
 
         char buffer[4096];
         size_t bytesRead;
+        unsigned char fingerprint[MD5_DIGEST_LENGTH]; //result of the md5 hashing
 
-        fseek(original_fopen_ret, 0, SEEK_SET);
+        if (original_fopen_ret!=NULL){
+          fseek(original_fopen_ret, 0, SEEK_SET);
 
-        while ((bytesRead = fread(buffer, 1, sizeof(buffer), original_fopen_ret)) > 0) {
-            MD5_Update(&md5Context, buffer, bytesRead);
+          while ((bytesRead = fread(buffer, 1, sizeof(buffer), original_fopen_ret)) > 0) {
+              MD5_Update(&md5Context, buffer, bytesRead);
+          }
+                    MD5_Final(fingerprint, &md5Context);
         }
-        unsigned char fingerprint[MD5_DIGEST_LENGTH];
-        MD5_Final(fingerprint, &md5Context);
 
-        ////////////////////////////////////////////////////////
-
-        if (access(path, F_OK) != -1) {
-            // The file exists
-            access_type = 1;
-            action_denied = 0;
-        }
-        else {
-            // The file does not exist, create file
-            if(mode[0] == 'w' || mode[0] == 'a'){
-                action_denied = 0;
-                access_type = 0;
-            }
-            else{
-                access_type = 1;    //the file can't be accessed nor be created so the opening action is denied
-                action_denied = 1;
-            }
-        }
         FILE *logg;
         logg = (*original_fopen)("file_logging.log", "a");
         fprintf(logg, "%d %s %s %s %d %d %s\n", uid, filename, date1, timestamp, access_type, action_denied, fingerprint);
-        
+                
     }
 
     return original_fopen_ret;
@@ -156,16 +176,14 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
             unsigned char fingerprint[MD5_DIGEST_LENGTH];
             MD5_Final(fingerprint, &md5Context);
 
-            if(access(filename, W_OK)!=1){
-              access_type = 2;
-              action_denied = 0;
-            } else {
-              access_type = 2;
-              action_denied = 1;
-            }
+           access_type = 2; //opened for writing purposes
+           if (!original_fwrite_ret){
+             action_denied = 1;
+           } else {
+             action_denied = 0;
+           }
 
             fprintf(logg, "%d %s %s %s %d %d %s\n", uid, filename, date1, timestamp, access_type, action_denied, fingerprint);
-
 
         }
     }
