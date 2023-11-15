@@ -1,5 +1,5 @@
-# Assignment 1: Project for system security course at TUC.
-## RSA Algorithm & Diffie–Hellman Key Exchange
+# Assignment 2: Project for system security course at TUC.
+## Access Control Logging Tool
 Instructions to build the project: <p>
 -make <p>
 -make run
