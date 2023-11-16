@@ -4,17 +4,18 @@ FILE *
 fopen(const char *path, const char *mode) 
 {   
     int log = strcmp(path, "file_logging.log"); //if 0 open log file
-
     FILE *original_fopen_ret;
     FILE *(*original_fopen)(const char*, const char*); //function pointer to original fopen
+    printf("file = %s\n",path);
+
 
     /* call the original fopen function */
     original_fopen = dlsym(RTLD_NEXT, "fopen");
 
     int uid = getuid(); /* user id (positive integer) */
     int access_type; /* access type values [0-2] */
-    int action_denied=1; /* is action denied values [0-1] */
-
+    int action_denied=0; /* is action denied values [0-1] */
+    static int counter=0;
 
     /* determine access type*/
     //first checking if file exists
@@ -49,8 +50,12 @@ fopen(const char *path, const char *mode)
         access_type = 0; //file created
       }
     }
-    if(action_denied==0) original_fopen_ret = (*original_fopen)(path, mode);
-      original_fopen_ret = (*original_fopen)(path, "r");
+
+    if (action_denied==0) original_fopen_ret = (*original_fopen)(path,mode);
+    else {
+      original_fopen_ret = (*original_fopen)(path,"r");
+    }
+  
     char *filename = realpath(path, NULL); /* filename (string) */
     if(log != 0){
         time_t times; /* file access time     format: Sun Sep 16 01:03:52 1973\n\0 */
@@ -79,29 +84,30 @@ fopen(const char *path, const char *mode)
 
         char buffer[4096];
         size_t bytesRead;
-        
+        unsigned char fingerprint[MD5_DIGEST_LENGTH]; //result of the md5 hashing
+
         if (original_fopen_ret!=NULL){
           fseek(original_fopen_ret, 0, SEEK_SET);
-
           while ((bytesRead = fread(buffer, 1, sizeof(buffer), original_fopen_ret)) > 0) {
-              MD5_Update(&md5Context, buffer, bytesRead);
+          MD5_Update(&md5Context, buffer, bytesRead);
           }
+          
+          MD5_Final(fingerprint, &md5Context);
         }
-        unsigned char fingerprint[MD5_DIGEST_LENGTH]; //result of the md5 hashing
-        MD5_Final(fingerprint, &md5Context);
+        
+        
 
         FILE *logg;
         logg = (*original_fopen)("file_logging.log", "a");
         fprintf(logg, "%d %s %s %s %d %d  open ", uid, filename, date1, timestamp, access_type, action_denied);
-        for (int i=0; i<MD5_DIGEST_LENGTH; i++){
-          fprintf(logg, "%02x", fingerprint[i]);
-        }      
+        if (original_fopen_ret!=NULL){
+          for (int i=0; i<MD5_DIGEST_LENGTH; i++){
+            fprintf(logg, "%02x", fingerprint[i]);
+          }      
+        }
         fprintf(logg, "\n");
         fclose(logg);
     }
-    
-    if(original_fopen_ret==NULL || action_denied == 1)
-      return NULL;
     return original_fopen_ret;
     
 }
@@ -119,15 +125,15 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
     
     // Get user ID
     int uid = getuid();
-    int access_type; /* access type values [0-2] */
-    int action_denied; /* is action denied values [0-1] */
+    int access_type = 2; /* access type values [0-2] */
+    int action_denied = 1; /* is action denied values [0-1] */
 
     // Get the file descriptor
     int fileDescriptor = fileno(stream);
 
     // Get the file path using the file descriptor
-    char path[1024];
-    char procPath[64];
+    char path[4096];
+    char procPath[4096];
     snprintf(procPath, sizeof(procPath), "/proc/self/fd/%d", fileDescriptor);
     ssize_t pathSize = readlink(procPath, path, sizeof(path));
     if (pathSize != -1) {

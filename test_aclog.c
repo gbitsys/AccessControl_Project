@@ -11,7 +11,7 @@ int main()
 
 	/* example source code */
 
-	for (i = 0; i < 6; i++) {
+/*	for (i = 0; i < 6; i++) {
 
 		file = fopen(filenames[i], "w+");
 		if (file == NULL) 
@@ -26,7 +26,7 @@ int main()
     FILE * file2;
     file2 = fopen("file_test", "w");
     if (file2==NULL){
-      printf("file fopen error!!!\n");
+      fprintf(stderr, "file fopen error\n");
     }
     else {
       fwrite(filenames[3], strlen(filenames[3]), 1, file2);
@@ -36,8 +36,25 @@ int main()
     
 	  chmod("file_test", 0440);
     
+    file2 = fopen("file_test", "r");
+
+   if (file2==NULL){
+    fprintf(stderr, "fopen error\n");
+   } else {
+    fclose(file2);
+  }*/ 
     
+    FILE* file2; 
+    file2 = fopen("file_test", "w");
+    fclose(file2);
 
-
-
+    chmod("file_test", 0220);
+    file2 = fopen("file_test", "w"); 
+    if (file2==NULL){
+      printf("fopen error\n");
+    } else {
+      fclose(file2);
+    } 
+  
+    return 0;
 }
