@@ -1,20 +1,17 @@
-#include <stdio.h>
-#include <string.h>
-
+#include"test_aclog.h"
 int main() 
 {
 	int i;
 	size_t bytes;
 	FILE *file;
-	char filenames[10][7] = {"file_0", "file_1", 
+	char filenames[6][7] = {"file_0", "file_1", 
 			"file_2", "file_3", "file_4",
-			"file_5", "file_6", "file_7", 		
-			"file_8", "file_9"};
+			"file_5"};
 
 
 	/* example source code */
 
-	for (i = 0; i < 10; i++) {
+	for (i = 0; i < 6; i++) {
 
 		file = fopen(filenames[i], "w+");
 		if (file == NULL) 
@@ -27,23 +24,20 @@ int main()
   }
     
     FILE * file2;
-    file2 = fopen("testFile", "w+");
+    file2 = fopen("file_test", "w");
     if (file2==NULL){
-      printf("file fopen error\n");
+      printf("file fopen error!!!\n");
     }
     else {
       fwrite(filenames[3], strlen(filenames[3]), 1, file2);
       fprintf(file2, "\n");
       fclose(file2);
     }
-	
+    
+	  chmod("file_test", 0440);
+    
+    
 
-
-	/* add your code here */
-	/* ... */
-	/* ... */
-	/* ... */
-	/* ... */
 
 
 }

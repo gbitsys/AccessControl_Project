@@ -1,22 +1,4 @@
-#include <time.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-typedef struct log_entry {
-	int uid; /* user id (positive integer) */
-	int access_type; /* access type values [0-2] */
-	int action_denied; /* is action denied values [0-1] */
-
-	char* date; /* file access date */
-	char* time; /* file access time */
-
-	char *fingerprint; /* file fingerprint */
-	char* filename;
-
-}Entry;
-
+#include"acmonitor.h"
 
 void
 usage(void)
