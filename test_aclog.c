@@ -22,6 +22,17 @@ int main()
 			fclose(file);
 		}
   }
+  for (i = 0; i < 6; i++) {
+
+		file = fopen(filenames[i], "w+");
+		if (file == NULL) 
+			printf("fopen error\n");
+		else {
+			bytes = fwrite(filenames[i], strlen(filenames[i]), 1, file);
+      fprintf(file,"\n");
+			fclose(file);
+		}
+  }
     
     FILE* file2; 
     file2 = fopen("file_test", "w");
