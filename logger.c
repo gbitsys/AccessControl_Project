@@ -76,7 +76,7 @@ fopen(const char *path, const char *mode)
         date2[4] = '\0';
         strcat(date1, date2);
 
-        
+        //gettting the hash value of content from file 
         MD5_CTX md5Context;
         MD5_Init(&md5Context);
 
