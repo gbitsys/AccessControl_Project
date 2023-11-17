@@ -27,10 +27,10 @@ int main()
     file2 = fopen("file_test", "w");
     fclose(file2);
 
-    chmod("file_test", 0220);
+    chmod("file_test", 0000);
     file2 = fopen("file_test", "r"); //it wont produce any hash
     if (file2==NULL){
-      printf("fopen error\n");
+      printf("fopen denied\n");
     } else {
       fclose(file2);
     } 
