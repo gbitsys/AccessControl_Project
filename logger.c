@@ -6,8 +6,6 @@ fopen(const char *path, const char *mode)
     int log = strcmp(path, "file_logging.log"); //if 0 open log file
     FILE *original_fopen_ret;
     FILE *(*original_fopen)(const char*, const char*); //function pointer to original fopen
-    printf("file = %s\n",path);
-
 
     /* call the original fopen function */
     original_fopen = dlsym(RTLD_NEXT, "fopen");
