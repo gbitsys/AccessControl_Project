@@ -97,7 +97,7 @@ fopen(const char *path, const char *mode)
 
         FILE *logg;
         logg = (*original_fopen)("file_logging.log", "a");
-        fprintf(logg, "%d %s %s %s %d %d  open ", uid, filename, date1, timestamp, access_type, action_denied);
+        fprintf(logg, "%d %s %s %s %d %d ", uid, filename, date1, timestamp, access_type, action_denied);
         if (original_fopen_ret!=NULL){
           for (int i=0; i<MD5_DIGEST_LENGTH; i++){
             fprintf(logg, "%02x", fingerprint[i]);
@@ -174,6 +174,8 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
         char buffer[4096];
         size_t bytesRead;
 
+        if (action_denied==0) original_fwrite_ret = (*original_fwrite)(ptr, size, nmemb, stream); //works for w and w+
+
         fseek(stream, 0, SEEK_SET);
 
         while ((bytesRead = fread(buffer, 1, sizeof(buffer), stream)) > 0) {
@@ -192,7 +194,5 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 
     }
 
-    original_fwrite_ret = (*original_fwrite)(ptr, size, nmemb, stream); //works for w and w+
-    if (action_denied==0) return original_fwrite_ret;
     return 0;
 }
