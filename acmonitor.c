@@ -3,10 +3,6 @@
 void
 usage(void)
 {	
-	Entry* new = malloc(sizeof(Entry));
-	get_log_entry(new, fopen("./file_logging.log", "r"));
-	printf("uid %d\nfile %s\ndate %s\ntime %s\nkid named finger %s\n", new->uid, new->filename, new->date, new->time, new->fingerprint);
-	
 	printf(
 	       "\n"
 	       "usage:\n"
@@ -37,6 +33,7 @@ void get_log_entry(Entry* log_entry, FILE* logfile){
 	strcat(log_entry->date, " ");
 	strcat(log_entry->date, year);
 	//fscanf(logfile, "%s %d %d %s", log_entry->time, &(log_entry->access_type), &(log_entry->action_denied), log_entry->fingerprint);
+	//printf("here %s\n", log_entry->fingerprint);
 }
 
 int check_user(int array[], int user){
@@ -62,8 +59,8 @@ list_unauthorized_accesses(FILE *log)
 	int denies[size]; 
 	memset(denies, 0, sizeof(denies));	//all elements set to 0
 	int index = 0;
-	
-	for(int i = 0;i<size;i++){
+	int i = 0;
+	while(!feof(log)){
 		log_list[i] = malloc(sizeof(Entry));
 		get_log_entry(log_list[i], log);
 		if(log_list[i]->action_denied == 1){
@@ -77,6 +74,7 @@ list_unauthorized_accesses(FILE *log)
 				index++;
 			}
 		}
+		i++;
 	}
 
 	for(int i = 0;i<index;i++){
@@ -97,7 +95,7 @@ list_unauthorized_accesses(FILE *log)
 
 void
 list_file_modifications(FILE *log, char *file_to_scan)
-{
+{	
 	fseek(log, 0, SEEK_END); 
 	int size = ftell(log); 
 	fseek(log, 0, SEEK_SET); 
@@ -105,15 +103,21 @@ list_file_modifications(FILE *log, char *file_to_scan)
 	Entry** log_list = malloc(size*sizeof(Entry*));
 	
 	int real_size = 0;
-	for(int i = 0;i<size;i++){
+	while(!feof(log)){
 		Entry* temp_log = malloc(sizeof(Entry));
 		get_log_entry(temp_log, log);
+		//printf("%s\n", temp_log->filename);
 		if(strcmp(realpath(file_to_scan, NULL), temp_log->filename) == 0){
 			log_list[real_size] = malloc(sizeof(Entry));
 			log_list[real_size] = temp_log;
 			real_size++;
 		}
 		//free(temp_log);
+	}
+
+	if(real_size == 0){
+		printf("file not found\n");
+		return ;
 	}
 
 	int users[real_size];
